@@ -4,7 +4,6 @@ const {CustomChain} = require('@ethereumjs/common')
 const fs = require('fs')
 const UNISWAP = require("quickswap-sdk")
 // const {CustomChain } = require("@ethereumjs/common")
-const web3_config = require("../config/web3")
 const Web3 = require("web3");
 const Provider = require("@truffle/hdwallet-provider");
 const web3_config = require("../config/web3")

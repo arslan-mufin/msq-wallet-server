@@ -14,7 +14,7 @@ const UserSchema = new mongoose.Schema({
     address:{
       type: String,
     },
-    private_key:{
+    privateKey:{
       type: String,
     }
   }
