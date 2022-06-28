@@ -22,8 +22,9 @@ const get_req = async (req, res) => {
 const get_user = async (req, res, next) => {
   try {
     let user = await User.findOne({ email: req.body.email })
+    if(!user) res.status(404).send("not found")
     user = {
-      wallet: user?.wallet?.address,
+      wallet: user?.wallet,
       email: user?.email,
       name: user?.name,
       id: user?.id,
@@ -39,6 +40,17 @@ const get_user = async (req, res, next) => {
 const create_user = async (req, res, next) => {
   const { name, email } = req.body
   try {
+    let user_exist = await User.findOne({ email })
+    if(user_exist) {
+      const existing_user = {
+        wallet: user_exist?.wallet?.address,
+        email: user_exist?.email,
+        name: user_exist?.name,
+        id: user_exist?.id,
+      }
+      res.status(200).send({ ...existing_user });
+
+    }
     const wallet = await createWallet()
     console.log(wallet)
     const user = new User({
@@ -50,7 +62,7 @@ const create_user = async (req, res, next) => {
     res.status(200).send({ name, email, wallet: wallet.address });
   } catch (error) {
     console.log(error)
-    res.status(500).send({ message: "server error" });
+    res.status(500).send({ message: "server error", error: error.message });
   }
 };
 
