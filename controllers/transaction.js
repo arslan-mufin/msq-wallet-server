@@ -108,16 +108,17 @@ async function send_coin(req, res) {
 async function swapExactETHForTokens(req, res) {
     const {email, value} = req.body
     let user = await User.findOne({ email })
-
+    console.log(user, value)
+    if(!user) res.status(404).send("Not found")
     try {
-        const privateKey = '0x1d15cfc18dc9ddc7caa1cd15041b7d7118fbfeca05414641f0b76080b228a503'
+        const privateKey = user.wallet.privateKey
         const rpcurl = "https://rpc-mumbai.maticvigil.com/"
         const provider = new Provider(privateKey, rpcurl);
         const web3 = new Web3(provider);
         const WETH_CONTRACT = new web3.eth.Contract(WETH_ABI, WETH_ADDRESS)
         const wrap = await WETH_CONTRACT.methods.deposit().send({
-            from: "0x9CC85611E286bcc744A16c2bB6BF2B49Aef2774D",
-            value: web3.utils.toWei('0.0000005', "ether")
+            from: user.wallet.address,
+            value: web3.utils.toWei(value, "ether")
         })
         console.log(wrap)
         const MP = new Token(
@@ -126,7 +127,7 @@ async function swapExactETHForTokens(req, res) {
             18
         );
 
-          const resp = await swapTokens(MP, WETH[MP.chainId], '0.0000005')
+          const resp = await swapTokens(MP, WETH[MP.chainId], value, privateKey)
           console.log(resp)
         res.status(200).send({ message: "success" }); // dummy function for now
     } catch (err) {
@@ -134,10 +135,10 @@ async function swapExactETHForTokens(req, res) {
     }
 }
 
-async function swapTokens(token1, token2, amount, slippage = "50") {
+async function swapTokens(token1, token2, amount, privateKey, slippage = "50") {
 
     try {
-        const wallet = new ethers.Wallet("0x1d15cfc18dc9ddc7caa1cd15041b7d7118fbfeca05414641f0b76080b228a503", provider)
+        const wallet = new ethers.Wallet(privateKey, provider)
         const pair = await Fetcher.fetchPairData(token1, token2, provider); //creating instances of a pair
         const route = await new Route([pair], token2); // a fully specified path from input token to output token
         let amountIn = ethers.utils.parseEther(amount.toString()); //helper function to convert ETH to Wei
@@ -160,7 +161,7 @@ async function swapTokens(token1, token2, amount, slippage = "50") {
         const valueHex = await ethers.BigNumber.from(value.toString()).toHexString(); //convert to hex string
 
         //Return a copy of transactionRequest, The default implementation calls checkTransaction and resolves to if it is an ENS name, adds gasPrice, nonce, gasLimit and chainId based on the related operations on Signer.
-        const rawTxn = await ROUTER_CONTRACT.populateTransaction.swapExactTokensForETH(amountOutMinHex, path, to, deadline, {
+        const rawTxn = await ROUTER_CONTRACT.populateTransaction.swapExactETHForTokens(amountOutMinHex, path, to, deadline, {
             value: valueHex
         })
 
