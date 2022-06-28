@@ -15,6 +15,9 @@ const WETH_ABI = require("../contract_address/weth_abi.json")
 const ROUTER_CONTRACT = new ethers.Contract(ROUTER_ADDRESS, ROUTER_ABI, provider)
 const WETH_CONTRACT = new ethers.Contract(WETH_ADDRESS, WETH_ABI, provider)
 
+const get_req = async (req, res) => {
+  res.status(200).send("success")
+}
 const get_users = async (req, res, next) => {
   //  address: '0xc03B8CC49b8B1A9ff694D3203C5d98f37eFC47F1',
   // privateKey: '0x54ab4dc409a087ead20eb45969e17177ebaa4c8c3b7251b1a6269c104f9003c9',
@@ -75,7 +78,8 @@ const update_user = async (req, res) =>{
 module.exports = {
   get_users,
   create_user,
-  update_user
+  update_user,
+  get_req
 };
 
 
