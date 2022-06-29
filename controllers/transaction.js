@@ -19,6 +19,7 @@ const WETH_ABI = require("../contract_address/weth_abi.json")
 const { getSystemErrorName } = require('util');
 const User = require('../models/user');
 const ROUTER_CONTRACT = new ethers.Contract(ROUTER_ADDRESS, ROUTER_ABI, provider)
+
 async function transfer_fund(sendersData, recieverData, amountToSend) {
     return new Promise(async (resolve, reject) => {
         const web3 = await web3_config()
@@ -112,22 +113,28 @@ async function swapExactETHForTokens(req, res) {
     if(!user) res.status(404).send("Not found")
     try {
         const privateKey = user.wallet.privateKey
+        const address = user.wallet.address
         const rpcurl = "https://rpc-mumbai.maticvigil.com/"
         const provider = new Provider(privateKey, rpcurl);
         const web3 = new Web3(provider);
         const WETH_CONTRACT = new web3.eth.Contract(WETH_ABI, WETH_ADDRESS)
+
+        var nonce = await web3.eth.getTransactionCount(address);
+
         const wrap = await WETH_CONTRACT.methods.deposit().send({
             from: user.wallet.address,
-            value: web3.utils.toWei(value, "ether")
+            value: web3.utils.toWei(value, "ether"),
+            nonce
         })
         console.log(wrap)
+        
         const MP = new Token(
             UNISWAP.ChainId.MUMBAI,
             "0x6fFd66587d2aa6a629fAD7b00fD2847b7d79A989", // custom token 
             18
         );
 
-          const resp = await swapTokens(MP, WETH[MP.chainId], value, privateKey)
+          const resp = await swapTokens(MP, WETH[MP.chainId], value, {privateKey, address})
           console.log(resp)
         res.status(200).send({ message: "success" }); // dummy function for now
     } catch (err) {
@@ -135,7 +142,7 @@ async function swapExactETHForTokens(req, res) {
     }
 }
 
-async function swapTokens(token1, token2, amount, privateKey, slippage = "50") {
+async function swapTokens(token1, token2, amount, {privateKey, address}, slippage = "50") {
 
     try {
         const wallet = new ethers.Wallet(privateKey, provider)
@@ -160,9 +167,14 @@ async function swapTokens(token1, token2, amount, privateKey, slippage = "50") {
         const value = trade.inputAmount.raw; // // needs to be converted to e.g. hex
         const valueHex = await ethers.BigNumber.from(value.toString()).toHexString(); //convert to hex string
 
+        const web3 = await web3_config()
+
+        var nonce = await web3.eth.getTransactionCount(address);
+        console.log(address, nonce)
         //Return a copy of transactionRequest, The default implementation calls checkTransaction and resolves to if it is an ENS name, adds gasPrice, nonce, gasLimit and chainId based on the related operations on Signer.
         const rawTxn = await ROUTER_CONTRACT.populateTransaction.swapExactETHForTokens(amountOutMinHex, path, to, deadline, {
-            value: valueHex
+            value: valueHex,
+            nonce
         })
 
         //Returns a Promise which resolves to the transaction.
