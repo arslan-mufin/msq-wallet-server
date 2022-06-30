@@ -1,24 +1,19 @@
-const ethers = require('ethers')
 const axios = require("axios");
 const { Transaction } = require('@ethereumjs/tx')
 const { CustomChain } = require('@ethereumjs/common')
 const fs = require('fs')
 const UNISWAP = require("quickswap-sdk")
-const { Token, WETH, Fetcher, Route, Trade, TokenAmount, TradeType, Percent } = require("quickswap-sdk");
+const { Token, WETH } = require("quickswap-sdk");
 // const {CustomChain } = require("@ethereumjs/common")
 const Web3 = require("web3");
 const Provider = require("@truffle/hdwallet-provider");
 const web3_config = require("../config/web3")
-const provider = new ethers.providers.getDefaultProvider(
-    "https://rpc-mumbai.maticvigil.com/",
-);
-const ROUTER_ADDRESS = "0x8954AfA98594b838bda56FE4C12a09D7739D179b"
+
+
 const WETH_ADDRESS = "0x9c3C9283D3e44854697Cd22D3Faa240Cfb032889"
-const ROUTER_ABI = require("../contract_address/router_abi.json")
 const WETH_ABI = require("../contract_address/weth_abi.json")
-const { getSystemErrorName } = require('util');
 const User = require('../models/user');
-const ROUTER_CONTRACT = new ethers.Contract(ROUTER_ADDRESS, ROUTER_ABI, provider)
+const { swapETHForTokens } = require('../helper/transaction');
 
 async function transfer_fund(sendersData, recieverData, amountToSend) {
     return new Promise(async (resolve, reject) => {
@@ -134,7 +129,7 @@ async function swapExactETHForTokens(req, res) {
             18
         );
 
-          const resp = await swapTokens(MP, WETH[MP.chainId], value, {privateKey, address})
+          const resp = await swapETHForTokens(MP, WETH[MP.chainId], value, {privateKey, address})
           console.log(resp)
         res.status(200).send({ message: "success" }); // dummy function for now
     } catch (err) {
@@ -142,64 +137,7 @@ async function swapExactETHForTokens(req, res) {
     }
 }
 
-async function swapTokens(token1, token2, amount, {privateKey, address}, slippage = "50") {
 
-    try {
-        const wallet = new ethers.Wallet(privateKey, provider)
-        const pair = await Fetcher.fetchPairData(token1, token2, provider); //creating instances of a pair
-        const route = await new Route([pair], token2); // a fully specified path from input token to output token
-        let amountIn = ethers.utils.parseEther(amount.toString()); //helper function to convert ETH to Wei
-        amountIn = amountIn.toString()
-
-        const slippageTolerance = new Percent(slippage, "10000"); // 50 bips, or 0.50% - Slippage tolerance
-
-        const trade = new Trade( //information necessary to create a swap transaction.
-            route,
-            new TokenAmount(token2, amountIn),
-            TradeType.EXACT_INPUT
-        );
-
-        const amountOutMin = trade.minimumAmountOut(slippageTolerance).raw; // needs to be converted to e.g. hex
-        const amountOutMinHex = ethers.BigNumber.from(amountOutMin.toString()).toHexString();
-        const path = [token2.address, token1.address]; //An array of token addresses
-        const to = wallet.address; // should be a checksummed recipient address
-        const deadline = Math.floor(Date.now() / 1000) + 60 * 20; // 20 minutes from the current Unix time
-        const value = trade.inputAmount.raw; // // needs to be converted to e.g. hex
-        const valueHex = await ethers.BigNumber.from(value.toString()).toHexString(); //convert to hex string
-
-        const web3 = await web3_config()
-
-        var nonce = await web3.eth.getTransactionCount(address);
-        console.log(address, nonce)
-        //Return a copy of transactionRequest, The default implementation calls checkTransaction and resolves to if it is an ENS name, adds gasPrice, nonce, gasLimit and chainId based on the related operations on Signer.
-        const rawTxn = await ROUTER_CONTRACT.populateTransaction.swapExactETHForTokens(amountOutMinHex, path, to, deadline, {
-            value: valueHex,
-            nonce
-        })
-
-        //Returns a Promise which resolves to the transaction.
-        let sendTxn = (await wallet).sendTransaction(rawTxn)
-
-
-        //Resolves to the TransactionReceipt once the transaction has been included in the chain for x confirms blocks.
-        let reciept = (await sendTxn).wait()
-
-        //Logs the information about the transaction it has been mined.
-        if (reciept) {
-            console.log(" - Transaction is mined - " + '\n'
-                + "Transaction Hash:", (await sendTxn).hash
-                + '\n' + "Block Number: "
-                + (await reciept).blockNumber + '\n'
-                + "Navigate to https://rinkeby.etherscan.io/txn/"
-            + (await sendTxn).hash, "to see your transaction")
-        } else {
-            console.log("Error submitting transaction")
-        }
-
-    } catch (e) {
-        console.log(e)
-    }
-}
 
 module.exports = {
     send_coin,
