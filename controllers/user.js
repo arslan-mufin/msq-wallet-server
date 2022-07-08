@@ -20,8 +20,9 @@ const get_req = async (req, res) => {
   res.status(200).send("success")
 }
 const get_user = async (req, res, next) => {
+  console.log(req.query)
   try {
-    let user = await User.findOne({ email: req.body.email })
+    let user = await User.findOne({ email: req.query.email })
     if(!user) res.status(404).send("not found")
     user = {
       wallet: user?.wallet,
@@ -38,21 +39,21 @@ const get_user = async (req, res, next) => {
 
 
 const create_user = async (req, res, next) => {
-  const { name, email } = req.body
+  const { name, email, wallet } = req.body
   try {
     let user_exist = await User.findOne({ email })
     if(user_exist) {
-      const existing_user = {
-        wallet: user_exist?.wallet?.address,
-        email: user_exist?.email,
-        name: user_exist?.name,
-        id: user_exist?.id,
-      }
-      res.status(200).send({ ...existing_user });
-
+      // const existing_user = {
+      //   wallet: user_exist?.wallet?.address,
+      //   email: user_exist?.email,
+      //   name: user_exist?.name,
+      //   id: user_exist?.id,
+      // }
+      res.status(200).send({ ...user_exist });
+      return
     }
-    const wallet = await createWallet()
-    console.log(wallet)
+    // const wallet = await createWallet()
+    // console.log(wallet)
     const user = new User({
       name,
       email,

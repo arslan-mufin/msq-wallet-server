@@ -6,6 +6,10 @@ const body_parser = require('body-parser')
 
 // DB connection
 mongoose.connect(process.env.MONGODB_CONFIG);
+const db = mongoose.connection
+
+db.on("error", (err)=>{console.error(err)})
+db.once("open", () => {console.log("DB started successfully")})
 
 const user_routes = require('./routes/user'); 
 const transaction_routes = require('./routes/transaction'); 

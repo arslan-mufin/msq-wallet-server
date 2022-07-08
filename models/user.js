@@ -13,9 +13,22 @@ const UserSchema = new mongoose.Schema({
   wallet:{
     address:{
       type: String,
+      // required: true,
+      // unique:true
     },
-    privateKey:{
-      type: String,
+    tokens:{
+      MSQ:{
+        type: Number,
+        default: 0
+      },
+      MSQP:{
+        type: Number,
+        default: 0
+      },
+      P2U:{
+        type: Number,
+        default: 0
+      },
     }
   }
 });
